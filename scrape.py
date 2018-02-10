@@ -6,21 +6,24 @@ import sys
 import os
 from url_normalize import url_normalize
 
+pathInfo = {}
+rootDir = os.path.abspath(os.path.curdir)
 map_link_to_resource = open("index.keys", "w")
+errors = open("errors.txt", "w")
 pages_parsed = set()
 
 def manageFile(relative):
 	def useLink(link):
-		download_file = link + "/" + relative['href']
+		download_file = url_normalize(link + "/" + relative['href'])
 		name = relative['href']
 		while os.path.isfile(name):
 			(root, ext) = os.path.splitext(name)
 			name = root + "(1)" + ext
-			name += "_1"
 		try:
 			urllib.request.urlretrieve(download_file, filename=name)
 		except:
-			print("not working: " + link)
+			print("not working: " + download_file)
+			errors.write(download_file+"\n")
 	return useLink
 
 def manageLink(relative):
@@ -30,10 +33,15 @@ def manageLink(relative):
 		end = relative['href']
 		transformed = extension + "/" + relative['href']
 		relative['href'] = transformed
+		currentDirectory = os.path.abspath(os.path.curdir)
+		os.chdir(rootDir)
 		parse_page(link + "/" + end)
+		os.chdir(currentDirectory)
 	return useLink
 
-def doNothing():
+def doNothing(*args):
+	if args is not None and args[0] is not None: 
+		errors.write("doing nothing for" + str(args[0]) + "\n")
 	return doNothing
 
 def chooseLinkOption(relative):
@@ -73,7 +81,7 @@ def parse_page(link):
 		images = html.find_all('img')
 	except Exception as e:
 		print("not a content page " + str(e))
-
+		return
 	for image in images:
 		image_link = image.get('src')
 		if not "https://" or not "http://" in image_link:
@@ -92,11 +100,13 @@ def parse_page(link):
 				filename = root + "(1)" + ext
 			urllib.request.urlretrieve(image_link, filename=filename)
 		except:
-			print("not working: " + link)
+			print("not working: " + image_link)
+			errors.writeline(image_link+"\n")
 	
 	for href in links:
 		chooseLinkOption(href)(link)
 	output = open("index.html", "w")
+	pathInfo[directory] = link
 	output.write(html.prettify())
 	output.close()
 
@@ -104,3 +114,5 @@ if __name__ == '__main__':
 	if len(sys.argv) < 1:
 		raise AttributeError("please call with a url") 
 	parse_page(sys.argv[1])
+	map_link_to_resource.write(str(pathInfo))
+	map_link_to_resource.close()

@@ -15,7 +15,7 @@ pages_parsed = set()
 def manageFile(relative):
 	def useLink(link):
 		download_file = url_normalize(link + "/" + relative['href'])
-		name = relative['href']
+		name = relative['href'].replace("../", "")
 		while os.path.isfile(name):
 			(root, ext) = os.path.splitext(name)
 			name = root + "(1)" + ext
@@ -62,6 +62,8 @@ def parse_page(link):
 	req = urllib.request.Request(site,headers=hdr)
 	page = urllib.request.urlopen(req)
 	if 'text/html' not in page.headers['Content-Type']:
+		goback = link.split('/')[-2]
+		os.chdir(os.path.abspath(goback))
 		urllib.request.urlretrieve(link, filename=directory)
 		return
 	soup = BeautifulSoup(page, 'html.parser')
@@ -84,30 +86,30 @@ def parse_page(link):
 		return
 	for image in images:
 		image_link = image.get('src')
-		if not "https://" or not "http://" in image_link:
-			image_link = url_normalize(link + "/" + image_link)
 		try:
-			path = urllib.request.urlopen(image_link)
-			if '@@images' in path.url:
-				filename = path.url.split('/')[-4]
-			else:
-				filename = path.url.split('/')[-1]
-			if filename is 'thumb' or filename is 'preview' or filename is 'mini':
-				print('url not getting translated: ' + path.url)
-			image['alt'] = filename
-			while os.path.isfile(filename):
-				(root, ext) = os.path.splitext(filename)
-				filename = root + "(1)" + ext
-			urllib.request.urlretrieve(image_link, filename=filename)
+			if not "https://" or not "http://" in image_link:
+				image_link = url_normalize(link + "/" + image_link)
+				path = urllib.request.urlopen(image_link)
+				if '@@images' in path.url:
+					filename = path.url.split('/')[-4]
+				else:
+					filename = path.url.split('/')[-1]
+				if filename is 'thumb' or filename is 'preview' or filename is 'mini':
+					print('url not getting translated: ' + path.url)
+				image['alt'] = filename
+				while os.path.isfile(filename):
+					(root, ext) = os.path.splitext(filename)
+					filename = root + "(1)" + ext
+				urllib.request.urlretrieve(image_link, filename=filename)
 		except:
-			print("not working: " + image_link)
-			errors.writeline(image_link+"\n")
+			print("not working: " + str(link) + ": " + str(image_link))
+			errors.write(str(link) + ": " + str(image_link)+"\n")
 	
 	for href in links:
 		chooseLinkOption(href)(link)
-	output = open("index.html", "w")
+	output = open("index.html", "wb")
 	pathInfo[directory] = link
-	output.write(html.prettify())
+	output.write(html.encode())
 	output.close()
 
 if __name__ == '__main__':

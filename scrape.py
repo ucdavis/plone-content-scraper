@@ -38,12 +38,13 @@ def manageLink(relative):
 		hostname = link.split('/')[2:3][0]
 		extension = "/" + ('/').join(extension)
 		end = relative['href']
-		transformed = extension + "/" + relative['href']
-		goto = link + '/' + end
 		if not hostname in end:
+			transformed = extension + "/" + relative['href']
+			goto = link + '/' + end
 			relative['href'] = transformed
 		else:
 			goto = end
+			relative['href'] = "/" + ('/').join(end.split('/')[3:])
 		currentDirectory = os.path.abspath(os.path.curdir)
 		os.chdir(rootDir)
 		parse_page(goto)

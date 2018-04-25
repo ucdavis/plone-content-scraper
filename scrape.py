@@ -15,12 +15,14 @@ pages_parsed = set()
 
 def manageFile(relative):
 	def useLink(link):
-		if link not in relative['href']:
+		hostname = link.split('/')[2:3][0]
+		if hostname not in relative['href']:
 			download_file = url_normalize(link + "/" + relative['href'])
+			name = relative['href'].replace("/","").replace("../", "")
 		else:
 			download_file = relative['href']
+			name = relative['href'].split('/')[-1].replace("/","").replace("../", "")
 
-		name = relative['href'].replace("../", "")
 		while os.path.isfile(name):
 			(root, ext) = os.path.splitext(name)
 			name = root + "(1)" + ext
@@ -87,6 +89,7 @@ def parse_page(link):
 			errors.write("cannot save file at regular url" + link + " error: " + str(e))
 			print("cannot save file at regular url" + link + " error: " + str(e))
 		return
+	hostname = link.split('/')[2:3][0]
 	soup = BeautifulSoup(page, 'html.parser')
 	#print soup
 	try:
@@ -101,6 +104,7 @@ def parse_page(link):
 	os.chdir(directory)
 	try:
 		links = html.find_all('a', {"class":"internal-link"})
+		links += html.find_all('a', {"href": re.compile(hostname)})
 		images = html.find_all('img')
 	except Exception as e:
 		print("not a content page " + str(e))

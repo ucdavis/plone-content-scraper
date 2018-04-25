@@ -41,8 +41,12 @@ def manageLink(relative):
 		extension = "/" + ('/').join(extension)
 		end = relative['href']
 		if not hostname in end:
-			transformed = extension + "/" + relative['href']
-			goto = link + '/' + end
+			if end[0] is not "/":
+				transformed = extension + "/" + relative['href']
+				goto = link + '/' + end
+			else:
+				transformed = end
+				goto = "http://" + hostname + end
 			relative['href'] = transformed
 		else:
 			goto = end
@@ -104,7 +108,7 @@ def parse_page(link):
 	os.chdir(directory)
 	try:
 		links = html.find_all('a', {"class":"internal-link"})
-		links += html.find_all('a', {"href": re.compile(hostname)})
+		links += [item for item in html.find_all('a', {"href": re.compile(hostname)}) if not ("class" in item.attrs and "internal-link" in item.attrs['class'])]
 		images = html.find_all('img')
 	except Exception as e:
 		print("not a content page " + str(e))

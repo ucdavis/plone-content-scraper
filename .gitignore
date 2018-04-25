@@ -1,1 +1,7 @@
 *.vscode
+errors.txt
+index.keys
+index.html
+*.pdf
+*.jpg
+*.png

@@ -137,7 +137,14 @@ def parse_page(link):
 	for href in links:
 		chooseLinkOption(href)(link)
 	output = open("index.html", "wb")
-	pathInfo[directory] = link
+	dirObject = {}
+	dirObject["path"] = link
+	try:
+		titleName = soup.find("div", {"id": re.compile("parent-fieldname-title*") })
+		dirObject["title"] = titleName.encode_contents()
+	except Exception as e:
+		print(e)
+	pathInfo[directory] = dirObject
 	output.write(html.encode())
 	output.close()
 

@@ -66,7 +66,7 @@ def doNothing(*args):
 def chooseLinkOption(relative):
 	if ".mp4" in relative['href']:
 		return doNothing
-	if "." in relative['href'].split('/')[-1]:
+	if "." in relative['href'].split('/')[-1] or "files" in relative['href']:
 		return manageFile(relative)
 	return manageLink(relative)
 

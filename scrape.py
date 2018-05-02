@@ -137,7 +137,14 @@ def parse_page(link):
 	for href in links:
 		chooseLinkOption(href)(link)
 	output = open("index.html", "wb")
-	pathInfo[directory] = link
+	dirObject = {}
+	dirObject["path"] = link
+	try:
+		titleName = soup.find(attrs={"id": re.compile("parent-fieldname-title*") })
+		dirObject["title"] = titleName.string.strip('\n')
+	except Exception as e:
+		print(e)
+	pathInfo[directory] = dirObject
 	output.write(html.encode())
 	output.close()
 
@@ -145,5 +152,5 @@ if __name__ == '__main__':
 	if len(sys.argv) < 1:
 		raise AttributeError("please call with a url") 
 	parse_page(sys.argv[1])
-	map_link_to_resource.write(str(pathInfo))
+	json.dump(pathInfo, map_link_to_resource, sort_keys=True, indent=4, separators=(',', ': '))
 	map_link_to_resource.close()

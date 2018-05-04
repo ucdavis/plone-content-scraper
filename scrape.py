@@ -1,5 +1,4 @@
 import urllib.request, urllib.error, urllib.parse
-import requests
 from bs4 import BeautifulSoup
 import json
 import sys
@@ -12,6 +11,10 @@ rootDir = os.path.abspath(os.path.curdir)
 map_link_to_resource = open("index.keys", "w")
 errors = open("errors.txt", "w")
 pages_parsed = set()
+agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.139 Safari/537.36'
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', agent)]
+urllib.request.install_opener(opener)
 
 def manageFile(relative):
 	def useLink(link):
@@ -31,7 +34,7 @@ def manageFile(relative):
 		except urllib.error.HTTPError as e:
 			print("file download not working: " + download_file)
 			print(e)
-			errors.write(download_file+"\n")
+			errors.write("file download not working: " + download_file+"\n")
 	return useLink
 
 def manageLink(relative):

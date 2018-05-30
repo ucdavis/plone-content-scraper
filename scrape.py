@@ -1,5 +1,4 @@
 import urllib.request, urllib.error, urllib.parse
-import requests
 from bs4 import BeautifulSoup
 import json
 import sys
@@ -12,15 +11,21 @@ rootDir = os.path.abspath(os.path.curdir)
 map_link_to_resource = open("index.keys", "w")
 errors = open("errors.txt", "w")
 pages_parsed = set()
+agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.139 Safari/537.36'
+opener = urllib.request.build_opener()
+opener.addheaders = [('User-agent', agent)]
+urllib.request.install_opener(opener)
 
 def manageFile(relative):
 	def useLink(link):
-		if link not in relative['href']:
+		hostname = link.split('/')[2:3][0]
+		if hostname not in relative['href']:
 			download_file = url_normalize(link + "/" + relative['href'])
+			name = relative['href'].replace("/","").replace("../", "")
 		else:
 			download_file = relative['href']
+			name = relative['href'].split('/')[-1].replace("/","").replace("../", "")
 
-		name = relative['href'].replace("../", "")
 		while os.path.isfile(name):
 			(root, ext) = os.path.splitext(name)
 			name = root + "(1)" + ext
@@ -29,7 +34,7 @@ def manageFile(relative):
 		except urllib.error.HTTPError as e:
 			print("file download not working: " + download_file)
 			print(e)
-			errors.write(download_file+"\n")
+			errors.write("file download not working: " + download_file+"\n")
 	return useLink
 
 def manageLink(relative):
@@ -39,8 +44,12 @@ def manageLink(relative):
 		extension = "/" + ('/').join(extension)
 		end = relative['href']
 		if not hostname in end:
-			transformed = extension + "/" + relative['href']
-			goto = link + '/' + end
+			if end[0] is not "/":
+				transformed = extension + "/" + relative['href']
+				goto = link + '/' + end
+			else:
+				transformed = end
+				goto = "http://" + hostname + end
 			relative['href'] = transformed
 		else:
 			goto = end
@@ -60,7 +69,7 @@ def doNothing(*args):
 def chooseLinkOption(relative):
 	if ".mp4" in relative['href']:
 		return doNothing
-	if "." in relative['href'].split('/')[-1]:
+	if "." in relative['href'].split('/')[-1] or "files" in relative['href']:
 		return manageFile(relative)
 	return manageLink(relative)
 
@@ -87,6 +96,7 @@ def parse_page(link):
 			errors.write("cannot save file at regular url" + link + " error: " + str(e))
 			print("cannot save file at regular url" + link + " error: " + str(e))
 		return
+	hostname = link.split('/')[2:3][0]
 	soup = BeautifulSoup(page, 'html.parser')
 	#print soup
 	try:
@@ -101,6 +111,7 @@ def parse_page(link):
 	os.chdir(directory)
 	try:
 		links = html.find_all('a', {"class":"internal-link"})
+		links += [item for item in html.find_all('a', {"href": re.compile(hostname)}) if not ("class" in item.attrs and "internal-link" in item.attrs['class'])]
 		images = html.find_all('img')
 	except Exception as e:
 		print("not a content page " + str(e))
@@ -129,7 +140,14 @@ def parse_page(link):
 	for href in links:
 		chooseLinkOption(href)(link)
 	output = open("index.html", "wb")
-	pathInfo[directory] = link
+	dirObject = {}
+	dirObject["path"] = link
+	try:
+		titleName = soup.find(attrs={"id": re.compile("parent-fieldname-title*") })
+		dirObject["title"] = titleName.string.strip('\n')
+	except Exception as e:
+		print(e)
+	pathInfo[directory] = dirObject
 	output.write(html.encode())
 	output.close()
 
@@ -137,5 +155,5 @@ if __name__ == '__main__':
 	if len(sys.argv) < 1:
 		raise AttributeError("please call with a url") 
 	parse_page(sys.argv[1])
-	map_link_to_resource.write(str(pathInfo))
+	json.dump(pathInfo, map_link_to_resource, sort_keys=True, indent=4, separators=(',', ': '))
 	map_link_to_resource.close()
